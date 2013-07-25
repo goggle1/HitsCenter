@@ -460,7 +460,7 @@ static time_t	time_from_string(char* str)
 	return ret;
 }
 
-static int read_tree_time(PLAY_STATISTICS_T* statp, json_val_t *element)
+static int read_tree_time(HITS_STATISTICS_T* statp, json_val_t *element)
 {
 	int ret = -1;
 
@@ -621,7 +621,7 @@ static int read_tree_area(AREA_STATISTICS_T* areap, json_val_t *element)
 }
 
 
-static int read_tree_platform(PLAY_STATISTICS_T* statp, json_val_t *element, int platform)
+static int read_tree_platform(HITS_STATISTICS_T* statp, json_val_t *element, int platform)
 {
 	int ret = -1;
 	int i = 0;
@@ -676,7 +676,7 @@ static int read_tree_platform(PLAY_STATISTICS_T* statp, json_val_t *element, int
 }
 
 
-static int read_tree_root(PLAY_STATISTICS_T* statp, json_val_t *element)
+static int read_tree_root(HITS_STATISTICS_T* statp, json_val_t *element)
 {
 	int ret = -1;
 	int i = 0;
@@ -719,7 +719,7 @@ static int read_tree_root(PLAY_STATISTICS_T* statp, json_val_t *element)
 }
 
 
-static int read_tree(PLAY_STATISTICS_T* statp, json_val_t *root_structure)
+static int read_tree(HITS_STATISTICS_T* statp, json_val_t *root_structure)
 {	
 	read_tree_root(statp, root_structure);
 	return 0;
@@ -835,7 +835,7 @@ int main(int argc, char **argv)
 }
 #endif
 
-int json_parse(PLAY_STATISTICS_T* statp, char* json_file)
+int json_parse(HITS_STATISTICS_T* statp, char* json_file)
 {
 	int format = 0, verify = 0, use_tree = 0;
 	int ret = 0;
@@ -898,7 +898,7 @@ void area_statistics_release(void* datap)
 	}
 }
 
-void play_statistics_release(PLAY_STATISTICS_T * statp)
+void hits_statistics_release(HITS_STATISTICS_T * statp)
 {
 	fprintf(stdout, "%s\n", __FUNCTION__);
 	statp->start_time = 0;

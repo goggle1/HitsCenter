@@ -43,7 +43,7 @@ int db_init_mysql(DB_PARAM* paramp, MYSQL **db_conn )
 
     /* connect the database */
     if(!mysql_real_connect(*db_conn,
-                            paramp->db_ip,
+                            paramp->db_host,
                             paramp->user_name, 
                             paramp->password, 
                             paramp->db_name, 
@@ -97,7 +97,7 @@ int db_test()
     return 0;
 }
 
-int db_save(map<string, PLAY_RECORD_T>& record_list, time_t start_time)
+int db_save(map<string, HITS_RECORD_T>& record_list, time_t start_time)
 {
     int ret = -1;    
     MYSQL *db_conn = NULL; 
@@ -126,15 +126,15 @@ int db_save(map<string, PLAY_RECORD_T>& record_list, time_t start_time)
 		result.tm_sec);
 	time_str[MAX_TIME_LEN-1] = '\0';
 
-	map<string, PLAY_RECORD_T>::iterator iter;
+	map<string, HITS_RECORD_T>::iterator iter;
 	for(iter=record_list.begin(); iter!=record_list.end(); iter++)
 	{
-		PLAY_RECORD_T& record = iter->second;		
+		HITS_RECORD_T& record = iter->second;		
 		snprintf(sql, MAX_BUF_SIZE-1, 
 			"INSERT INTO %s(hash_id, area_id, play_num_pc, play_num_mobile, start_time) "
 			"VALUES('%s', '%d', '%ld', '%ld', '%s')", 
 			g_db_param.table,
-			record.hash_id, record.area_id, record.play_num_pc, record.play_num_mobile, time_str
+			record.hash_id, record.area_id, record.hits_num_pc, record.hits_num_mobile, time_str
 			);
 		sql[MAX_BUF_SIZE-1] = '\0';
 

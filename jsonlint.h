@@ -30,11 +30,11 @@ typedef struct play_statistics_t
 	//char 	start_time[MAX_TIME_LEN];	
 	DEQUE_NODE* pc_list;
 	DEQUE_NODE* mobile_list;
-} PLAY_STATISTICS_T;
+} HITS_STATISTICS_T;
 
 
-int 	json_parse(PLAY_STATISTICS_T* statp, char* json_file);
-void 	play_statistics_release(PLAY_STATISTICS_T* statp);
+int 	json_parse(HITS_STATISTICS_T* statp, char* json_file);
+void 	hits_statistics_release(HITS_STATISTICS_T* statp);
 
 
 #ifdef __cplusplus

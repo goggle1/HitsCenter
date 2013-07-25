@@ -2,13 +2,26 @@
 # tar zxvf mysql-connector-c-6.0.2-linux-glibc2.3-x86-64bit.tar.gz
 # mv mysql-connector-c-6.0.2-linux-glibc2.3-x86-64bit mysql
 
-1. function?
+1. How to run? reference to db.txt.
+a. install mysqld
+b. create database heat.
+c. create table hashid_playnum:
+CREATE TABLE hashid_playnum(
+    hash_id VARCHAR(40),
+    area_id int,
+    play_num_pc bigint,
+    play_num_mobile bigint,
+    start_time timestamp null
+);
+d. run
+# ./HitsCenter
+
 
 2. changelog
 
 按需分发，代码开发，完成了第一步：实现了功能 下载、解析、入库。
-0. 定时， 每10分钟产生一个任务。
-1. 下载， 通过http get获取json数据，保存在一个临时文件中。
-2. 解析， 解析json数据，获取到hashid的点击量。每一个小时汇总一次。
-3. 入库， 保存到mysql制定的数据库。
+0). 定时， 每10分钟产生一个任务。
+1). 下载， 通过http get获取json数据，保存在一个临时文件中。
+2). 解析， 解析json数据，获取到hashid的点击量。每一个小时汇总一次。
+3). 入库， 保存到mysql制定的数据库。
 
