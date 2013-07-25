@@ -24,7 +24,7 @@ typedef struct area_statistics_t
 } AREA_STATISTICS_T;
 
 //#define MAX_TIME_LEN	32
-typedef struct play_statistics_t
+typedef struct hits_statistics_t
 {
 	time_t 	start_time;
 	//char 	start_time[MAX_TIME_LEN];	
