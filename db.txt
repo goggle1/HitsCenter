@@ -1,0 +1,16 @@
+1. install mysqld, which is server.
+2. install mysql,  which client.
+3. config. user=admin, host=%, password=123456
+4. create database, heat. grant to user admin.
+5. admin login, and create table, hashid_playnum.
+# mysql -h127.0.0.1 -uadmin -p123456 heat
+> CREATE TABLE hashid_playnum(
+    hash_id VARCHAR(40),
+    area_id int,
+    play_num_pc bigint,
+    play_num_mobile bigint,
+    start_time timestamp null
+);
+
+
+
