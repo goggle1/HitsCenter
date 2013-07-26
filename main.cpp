@@ -432,23 +432,9 @@ void print_usage(char* program)
         );
 }
 
-int main(int argc, char* argv[])
+int parse_cmd_line(int argc, char* argv[])
 {
-	// 1. timer, every 10 minutes produce 1 job
-	// 2. thread_job, wait for job, and do job.
 	int ret = 0;
-
-	// just for test.
-	do_parse("./hu.json");
-	do_parse("./hu.json");
-	do_parse("./hu.json");
-	do_parse("./hu.json");
-	do_parse("./hu.json");
-	do_parse("./hu.json");
-	do_parse("./hu.json");	
-
-	// just for test.
-	do_save();
 	
 	// begin: parse the command line.
 	bool  have_unknown_opts = false;
@@ -532,13 +518,40 @@ int main(int argc, char* argv[])
 				break;
 		}
 	}
+	
 	if(have_unknown_opts)
 	{
 		print_usage(argv[0]);
 		exit(-1);
 	}	
 	// end: parse the command line.
+
+	return ret;
+}
+
+int main(int argc, char* argv[])
+{
+	// 1. timer, every 10 minutes produce 1 job
+	// 2. thread_job, wait for job, and do job.
+	int ret = 0;
+	
+	// just for test.
+	do_parse("./hu.json");
+	do_parse("./hu.json");
+	do_parse("./hu.json");
+	do_parse("./hu.json");
+	do_parse("./hu.json");
+	do_parse("./hu.json");
+	do_parse("./hu.json");	
+	do_save();
 		
+	ret = parse_cmd_line(argc, argv);
+	if(ret < 0)
+	{
+		// error
+		fprintf(stderr, "%s: parse_cmd_line failed\n", __FUNCTION__);
+		return -1;
+	}
 
 	ret = sem_init(&g_job_sem, 0, 0);
 	pthread_mutex_init(&g_job_mutex, NULL);
