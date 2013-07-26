@@ -217,7 +217,6 @@ int hits_records_merge(map<string, HITS_RECORD_T>& record_list, HITS_STATISTICS_
 			{
 				strcpy(record.hash_id, hashidp->hash_id);
 				record.area_id = areap->area_id;
-				// difference
 				record.hits_num_pc = hashidp->play_num;
 				record.hits_num_mobile = 0;
 				record_list.insert(pair<string, HITS_RECORD_T>(key, record));
@@ -225,7 +224,6 @@ int hits_records_merge(map<string, HITS_RECORD_T>& record_list, HITS_STATISTICS_
 			else
 			{
 				HITS_RECORD_T& record_ref = iter->second;
-				// difference
 				record_ref.hits_num_pc += hashidp->play_num;				
 			}
 
@@ -260,7 +258,6 @@ int hits_records_merge(map<string, HITS_RECORD_T>& record_list, HITS_STATISTICS_
 			{
 				strcpy(record.hash_id, hashidp->hash_id);
 				record.area_id = areap->area_id;
-				// difference
 				record.hits_num_pc = 0;
 				record.hits_num_mobile = hashidp->play_num;
 				record_list.insert(pair<string, HITS_RECORD_T>(key, record));
@@ -268,7 +265,6 @@ int hits_records_merge(map<string, HITS_RECORD_T>& record_list, HITS_STATISTICS_
 			else
 			{
 				HITS_RECORD_T& record_ref = iter->second;
-				// difference
 				record_ref.hits_num_mobile += hashidp->play_num;				
 			}
 
@@ -348,11 +344,11 @@ int do_job(time_t job_time)
 	
 	// http://traceall.funshion.com/_online/cacti_django/api/get_data/playnum?timestamp=
 	char url[MAX_URL_LEN];
-	snprintf(url, MAX_URL_LEN-1, "%s?timestamp=%ld", DEFAULT_OXEYE_URL_PREFIX, job_time);
+	snprintf(url, MAX_URL_LEN-1, "%s?timestamp=%ld", g_config.oxeye_url_prefix, job_time);
 	url[MAX_URL_LEN-1] = '\0';
 
 	char job_file[PATH_MAX];
-	snprintf(job_file, PATH_MAX-1, "%s/%ld.json", DEFAULT_ROOT_PATH, job_time);
+	snprintf(job_file, PATH_MAX-1, "%s/%ld.json", g_config.root_path, job_time);
 	job_file[PATH_MAX-1] = '\0';
 	
 	ret = curl_download(url, job_file);
@@ -571,10 +567,10 @@ int main(int argc, char* argv[])
 	{
 		time_t now = time(NULL);
 		fprintf(stdout, "%s now=%ld, last_time=%ld\n", __FUNCTION__, now, last_time);
-		if(now - last_time >= DEFAULT_OXEYE_GET_INTERVAL)
+		if(now - last_time >= g_config.oxeye_get_interval)
 		{
 			// produce 1 job.
-			time_t job_time = now/DEFAULT_OXEYE_GET_INTERVAL*DEFAULT_OXEYE_GET_INTERVAL;
+			time_t job_time = now/g_config.oxeye_get_interval*g_config.oxeye_get_interval;
 			job_in_queue(job_time);			
 			
 			last_time = now;
