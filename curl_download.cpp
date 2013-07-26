@@ -73,6 +73,7 @@ int curl_download(char* srcfile, char* dstfile)
         	res = curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_res_code);
         	if(http_res_code != 200)
         	{
+        		fprintf(stderr, "%s: http_res_code=%ld\n", __FUNCTION__, http_res_code);
             	ret = -1;
         	}
         	else
@@ -88,7 +89,9 @@ int curl_download(char* srcfile, char* dstfile)
 	            }
 	            else
 	            {
-	                ret = -1;
+	            	// just for debug.
+	            	fprintf(stderr, "%s: content_length=%f, download_length=%f\n", __FUNCTION__, content_length, download_length);
+	                // ret = -1;
 	            }           
         	}
         
@@ -97,7 +100,7 @@ int curl_download(char* srcfile, char* dstfile)
     	{
         	ret = -1;
       		/* we failed */ 
-      		fprintf(stderr, "curl told us %d\n", res);
+      		fprintf(stderr, "curl told us %d, get %s\n", res, srcfile);
       		//fprintf(stdout, "curl told us %d\n", res);
     	}
 

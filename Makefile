@@ -27,7 +27,7 @@ PROGRAM   := HitsCenter
 # The directories in which source files reside.
 # At least one path should be specified.
 # SRCDIRS   := .        # current directory
-SRCDIRS   := . 
+SRCDIRS   := . ./BaseServer
 
 # The source file types (headers excluded).
 # At least one type should be specified.
@@ -39,19 +39,19 @@ SRCEXTS   := .c .cpp
 
 # The flags used by the cpp (man cpp for more).
 # CPPFLAGS  := -Wall -Werror # show all warnings and take them as errors
-CPPFLAGS  := -g -Wall -Wno-write-strings -O0 
+CPPFLAGS  := -g -Wall -Wno-write-strings -O0 -include BaseServer/PlatformHeader.h
 CPPFLAGS  += -I./mysql/include
 
 # The compiling flags used only for C.
 # If it is a C++ program, no need to set these flags.
 # If it is a C and C++ merging program, set these flags for the C parts.
-CFLAGS    := -g -Wall -Wno-write-strings -O0 
+CFLAGS    := -g -Wall -Wno-write-strings -O0 -include BaseServer/PlatformHeader.h
 CFLAGS    += -I./mysql/include
 
 # The compiling flags used only for C++.
 # If it is a C program, no need to set these flags.
 # If it is a C and C++ merging program, set these flags for the C++ parts.
-CXXFLAGS  := -g -Wall -Wno-write-strings -O0 
+CXXFLAGS  := -g -Wall -Wno-write-strings -O0 -include BaseServer/PlatformHeader.h
 CXXFLAGS  += -I./mysql/include
 
 # The library and the link options ( C and C++ common).

@@ -40,6 +40,11 @@ HTTPRequest::HTTPRequest()
 
 HTTPRequest::~HTTPRequest()
 {
+	if(fRequestPath != NULL)
+	{
+		delete fRequestPath;
+		fRequestPath = NULL;
+	}
 }
 
 void HTTPRequest::Clear()

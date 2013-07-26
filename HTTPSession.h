@@ -28,6 +28,8 @@ protected:
         	Bool16          ResponseGet();
         	Bool16 			ReadFileContent();
         	Bool16 			ResponseFileContent(char* absolute_path);
+        	Bool16 			ResponseHello();
+        	Bool16 			ResponseCmd(char* absolute_uri);
         	Bool16 			ResponseFileNotFound(char* absolute_uri);
         	Bool16 			ResponseError(QTSS_RTSPStatusCode StatusCode);
 	        void            MoveOnRequest();

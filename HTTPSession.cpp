@@ -353,15 +353,39 @@ QTSS_Error  HTTPSession::ProcessRequest()
 
 Bool16 HTTPSession::ResponseGet()
 {
+	Bool16 ret = true;
+
+	if(fRequest.fAbsoluteURI.Len == 0)
+	{
+		return false;
+	}
+	
 	char absolute_uri[fRequest.fAbsoluteURI.Len + 1];
 	strncpy(absolute_uri, fRequest.fAbsoluteURI.Ptr, fRequest.fAbsoluteURI.Len);
 	absolute_uri[fRequest.fAbsoluteURI.Len] = '\0';
 
+	if(fRequest.fAbsoluteURI.Len == 1 && absolute_uri[0] == '/')
+	{
+		ret = ResponseHello();
+		return ret;
+	}
+	
+	if(fRequest.fAbsoluteURI.Len >= 2 && absolute_uri[0] == '/' && absolute_uri[1] == '?')
+	{
+		// ?cmd=get_hotest&N=10
+		// ?cmd=get_coldest&N=10
+		// ?cmd=get_hot&hashid=xxx
+		// ?cmd=get_hot&hashid=xxx&ip_group_id=y
+		// ?cmd=get_cold&hashid=xxx
+		// ?cmd=get_cold&hashid=xxx&ip_group_id=y
+		ret = ResponseCmd(absolute_uri);
+		return ret;
+	}
+
 	char abs_path[PATH_MAX];
 	snprintf(abs_path, PATH_MAX-1, "%s%s", ROOT_PATH, absolute_uri);
 	abs_path[PATH_MAX-1] = '\0';
-
-	Bool16 ret = true;
+	
 	if(file_exist(abs_path))
 	{
 		ret = ResponseFileContent(abs_path);
@@ -449,6 +473,74 @@ Bool16 HTTPSession::ResponseFileContent(char* abs_path)
 	return true;
 }
 
+Bool16 HTTPSession::ResponseHello()
+{
+	char	buffer[1024];
+	StringFormatter content(buffer, sizeof(buffer));
+	
+	content.Put("<HTML>\n");
+	content.Put("<BODY>\n");
+
+	content.Put("<h2 align=\"center\">");
+	content.PutFmtStr("hello, I am %s/%s\n", BASE_SERVER_NAME, BASE_SERVER_VERSION);
+	content.Put("</h2>");
+	
+	content.Put("</BODY>\n");
+	content.Put("</HTML>\n");
+        
+    fResponse.Set(fStrRemained.Ptr+fStrRemained.Len, kResponseBufferSizeInBytes-fStrRemained.Len);
+    fResponse.Put("HTTP/1.0 200 OK\r\n");
+    fResponse.PutFmtStr("Server: %s/%s\r\n", BASE_SERVER_NAME, BASE_SERVER_VERSION);
+    fResponse.PutFmtStr("Content-Length: %d\r\n", content.GetBytesWritten());
+    fResponse.PutFmtStr("Content-Type: %s;charset=%s\r\n", CONTENT_TYPE_TEXT_HTML, CHARSET_UTF8);
+    fResponse.Put("\r\n"); 
+    fResponse.Put(content.GetBufPtr(), content.GetBytesWritten());
+
+    fStrResponse.Set(fResponse.GetBufPtr(), fResponse.GetBytesWritten());
+    //append to fStrRemained
+    fStrRemained.Len += fStrResponse.Len;  
+    //clear previous response.
+    fStrResponse.Set(fResponseBuffer, 0);
+    
+    //SendData();
+    
+	return true;
+}
+
+
+Bool16 HTTPSession::ResponseCmd(char* absolute_uri)
+{
+	char	buffer[1024];
+	StringFormatter content(buffer, sizeof(buffer));
+	
+	content.Put("<HTML>\n");
+	content.Put("<BODY>\n");
+
+	content.PutFmtStr("cmd=%s\n", absolute_uri);	
+	//todo:
+		
+	content.Put("</BODY>\n");
+	content.Put("</HTML>\n");
+        
+    fResponse.Set(fStrRemained.Ptr+fStrRemained.Len, kResponseBufferSizeInBytes-fStrRemained.Len);
+    fResponse.Put("HTTP/1.0 200 OK\r\n");
+    fResponse.PutFmtStr("Server: %s/%s\r\n", BASE_SERVER_NAME, BASE_SERVER_VERSION);
+    fResponse.PutFmtStr("Content-Length: %d\r\n", content.GetBytesWritten());
+    fResponse.PutFmtStr("Content-Type: %s;charset=%s\r\n", CONTENT_TYPE_TEXT_HTML, CHARSET_UTF8);
+    fResponse.Put("\r\n"); 
+    fResponse.Put(content.GetBufPtr(), content.GetBytesWritten());
+
+    fStrResponse.Set(fResponse.GetBufPtr(), fResponse.GetBytesWritten());
+    //append to fStrRemained
+    fStrRemained.Len += fStrResponse.Len;  
+    //clear previous response.
+    fStrResponse.Set(fResponseBuffer, 0);
+    
+    //SendData();
+    
+	return true;
+}
+
 Bool16 HTTPSession::ResponseFileNotFound(char* absolute_uri)
 {
 	char	buffer[1024];
@@ -456,21 +548,21 @@ Bool16 HTTPSession::ResponseFileNotFound(char* absolute_uri)
 	
 	content.Put("<HTML>\n");
 	content.Put("<BODY>\n");
-	content.Put("<TABLE border=2>\n");
+	content.Put("<TABLE border=\"1\" align=\"center\" cellpadding=\"5\">\n");
 
 	content.Put("<TR>\n");	
-	content.Put("<TD>\n");
-	content.Put("URI NOT FOUND!\n");
-	content.Put("</TD>\n");
+	content.Put("<TH>\n");
+	content.Put("uri is not found! \n");
+	content.Put("</TH>\n");
 	content.Put("<TD>\n");
 	content.PutFmtStr("%s\n", absolute_uri);
 	content.Put("</TD>\n");	
 	content.Put("</TR>\n");
 
 	content.Put("<TR>\n");	
-	content.Put("<TD>\n");
+	content.Put("<TH>\n");
 	content.Put("your ip:");
-	content.Put("</TD>\n");
+	content.Put("</TH>\n");
 	content.Put("<TD>\n");
 	UInt32  remote_ip =  fSocket.GetRemoteAddr();
 	content.PutFmtStr("%u.%u.%u.%u\n", 
@@ -483,9 +575,9 @@ Bool16 HTTPSession::ResponseFileNotFound(char* absolute_uri)
 	content.Put("</TR>\n");
 	
 	content.Put("<TR>\n");	
-	content.Put("<TD>\n");
+	content.Put("<TH>\n");
 	content.Put("your port:\n");
-	content.Put("</TD>\n");
+	content.Put("</TH>\n");
 	content.Put("<TD>\n");
 	content.PutFmtStr("%u\n", fSocket.GetRemotePort());	
 	content.Put("</TD>\n");	
@@ -493,9 +585,9 @@ Bool16 HTTPSession::ResponseFileNotFound(char* absolute_uri)
 
 
 	content.Put("<TR>\n");	
-	content.Put("<TD>\n");
+	content.Put("<TH>\n");
 	content.Put("server:\n");
-	content.Put("</TD>\n");
+	content.Put("</TH>\n");
 	content.Put("<TD>\n");
 	content.PutFmtStr("%s/%s\n", BASE_SERVER_NAME, BASE_SERVER_VERSION);	
 	content.Put("</TD>\n");	

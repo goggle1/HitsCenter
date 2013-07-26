@@ -13,24 +13,30 @@
 
 #include <string>
 #include <map>
-
+using namespace std;
 #include "public.h"
 #include "deque.h"
 #include "curl_download.h"
 #include "jsonlint.h"
-
-using namespace std;
-
 #include "db.h"
+#include "http_server.h"
 
 #define MY_VERSION		"0.1"
 #define SLEEP_INTERVAL	(10)
 #define MAX_URL_LEN		1024
 #define MAX_KEY_LEN		(MAX_HASH_ID_LEN + 16)
 
+// just for debug.
+#if 0
+#define DEFAULT_OXEYE_GET_INTERVAL	(1*60)
+#define DEFAULT_DB_SAVE_INTERVAL	(6*60)
+#define DEFAULT_OXEYE_URL_PREFIX 	"http://test.funshion.com/_online/cacti_django/api/get_data/playnum"
+#else
 #define DEFAULT_OXEYE_GET_INTERVAL	(10*60)
 #define DEFAULT_DB_SAVE_INTERVAL	(1*60*60)
 #define DEFAULT_OXEYE_URL_PREFIX 	"http://traceall.funshion.com/_online/cacti_django/api/get_data/playnum"
+#endif
+
 #define DEFAULT_ROOT_PATH			"/heat"
 #define DEFAULT_DB_HOST				"127.0.0.1"
 #define DEFAULT_DB_USER				"admin"
@@ -82,6 +88,11 @@ time_t					   g_start_time;
 
 int job_in_queue(time_t job_time)
 {
+// just for debug.
+#if 0
+	job_time = 1374832200;
+#endif
+	
 	int ret = 0;	
 	// append queue, and send signal.
 	fprintf(stdout, "%s %ld\n", __FUNCTION__, job_time);
@@ -287,6 +298,11 @@ int hits_records_merge(map<string, HITS_RECORD_T>& record_list, HITS_STATISTICS_
 
 bool one_hour_complete()
 {
+	// just for debug.
+#if 0
+	return true;
+#endif
+
 	// the oldest statistics, maybe
 	HITS_STATISTICS_T* statp = &(g_hits_stats[g_hits_index]);
 	if(statp->start_time > 0 && (statp->start_time%3600==0))
@@ -530,22 +546,32 @@ int main(int argc, char* argv[])
 	// 1. timer, every 10 minutes produce 1 job
 	// 2. thread_job, wait for job, and do job.
 	int ret = 0;
-	
+		
+#if 0
 	// just for test.
-	do_parse("./hu.json");
-	do_parse("./hu.json");
-	do_parse("./hu.json");
-	do_parse("./hu.json");
-	do_parse("./hu.json");
-	do_parse("./hu.json");
-	do_parse("./hu.json");	
+	do_parse("./1.json");
+	do_parse("./1.json");
+	do_parse("./1.json");
+	do_parse("./1.json");
+	do_parse("./1.json");
+	do_parse("./1.json");
+	do_parse("./1.json");	
 	do_save();
+#endif
 		
 	ret = parse_cmd_line(argc, argv);
 	if(ret < 0)
 	{
 		// error
 		fprintf(stderr, "%s: parse_cmd_line failed\n", __FUNCTION__);
+		return -1;
+	}
+
+	ret = start_http_server();
+	if(ret < 0)
+	{
+		// error
+		fprintf(stderr, "%s: start_http_server failed\n", __FUNCTION__);
 		return -1;
 	}
 

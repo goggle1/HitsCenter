@@ -675,8 +675,7 @@ static int read_tree_platform(HITS_STATISTICS_T* statp, json_val_t *element, int
 	return ret;
 }
 
-
-static int read_tree_root(HITS_STATISTICS_T* statp, json_val_t *element)
+static int read_tree_data_array0(HITS_STATISTICS_T* statp, json_val_t *element)
 {
 	int ret = -1;
 	int i = 0;
@@ -696,13 +695,75 @@ static int read_tree_root(HITS_STATISTICS_T* statp, json_val_t *element)
 			{
 				ret = read_tree_time(statp, element->u.object[i]->val);
 			}
-			else if(strcmp(element->u.object[i]->key, "pc") == 0)
+			else if(strcmp(element->u.object[i]->key, "PC") == 0)
 			{
 				ret = read_tree_platform(statp, element->u.object[i]->val, PLATFORM_PC);
 			}
-			else if(strcmp(element->u.object[i]->key, "mobile") == 0)
+			else if(strcmp(element->u.object[i]->key, "MOBILE") == 0)
 			{
 				ret = read_tree_platform(statp, element->u.object[i]->val, PLATFORM_MOBILE);
+			}
+			else
+			{
+				fprintf(stderr, "%s: unknown key: %s\n", __FUNCTION__, element->u.object[i]->key);
+			}
+		}
+		break;
+	default:
+		fprintf(stderr, "%s: wierd, type=%d, %s\n", __FUNCTION__, element->type, element->u.data);
+		break;
+	}
+	
+	return ret;
+}
+
+
+static int read_tree_data(HITS_STATISTICS_T* statp, json_val_t *element)
+{
+	int ret = -1;
+	int i = 0;
+	if (!element) 
+	{
+		fprintf(stderr, "error: no element in print tree\n");
+		return -1;
+	}
+
+	switch (element->type) 
+	{
+	case JSON_ARRAY_BEGIN:		
+		for (i = 0; i < element->length; i++) 
+		{
+			ret = read_tree_data_array0(statp, element->u.array[i]);
+		}
+		break;
+	default:
+		fprintf(stderr, "%s: wierd, type=%d, %s\n", __FUNCTION__, element->type, element->u.data);
+		break;
+	}
+	
+	return ret;
+}
+
+
+static int read_tree_root(HITS_STATISTICS_T* statp, json_val_t *element)
+{
+	int ret = -1;
+	int i = 0;
+	if (!element) 
+	{
+		fprintf(stderr, "error: no element in print tree\n");
+		return -1;
+	}
+
+	switch (element->type) 
+	{
+	case JSON_OBJECT_BEGIN:		
+		for (i = 0; i < element->length; i++) 
+		{
+			//fprintf(stdout, "%s: key[%d/%d]=%s\n", __FUNCTION__, i, element->length, element->u.object[i]->key);
+			if(strcmp(element->u.object[i]->key, "data") == 0)
+			{
+				ret = read_tree_data(statp, element->u.object[i]->val);
 			}
 			else
 			{
