@@ -85,8 +85,17 @@ DB_PARAM			g_db_param =
 // hash table.
 // DEQUE_NODE*		g_hashid_list = NULL;
 // red_black_tree is better.
+
+// insert into database.
+// key=[hashid:area_id]
 map<string, HITS_RECORD_T> g_hits_records;
 time_t					   g_start_time;
+
+// only in memory, for notify macross.
+// key=[hashid:area_id]
+map<string, HITS_RECORD_T> 	g_hits_memo;
+// key=[hits_num]
+multimap<long, HITS_RECORD_T>   g_hits_sort;
 
 int job_in_queue(time_t job_time)
 {
@@ -176,6 +185,49 @@ int do_parse(char* json_file)
 	
 	return 0;
 }
+
+int hits_sorts_print(multimap<long, HITS_RECORD_T>& hits_sort)
+{
+	int index = 0;
+
+	fprintf(stdout, "%s: =========================================\n", __FUNCTION__);
+
+	multimap<long, HITS_RECORD_T>::reverse_iterator iter;
+	for(iter=hits_sort.rbegin(); iter!=hits_sort.rend();iter++)
+	{
+		long key = iter->first;
+		HITS_RECORD_T& record = iter->second;
+
+		fprintf(stdout, "%s: index=%d, key=%ld, hash_id=%s, area_id=%d, hits_num_pc=%ld, hits_num_mobile=%ld\n", 
+			__FUNCTION__, index, key, record.hash_id, record.area_id, record.hits_num_pc, record.hits_num_mobile);
+		
+		index ++;
+	}	
+
+	fprintf(stdout, "%s: #########################################\n", __FUNCTION__);
+	
+	return 0;
+}
+
+
+int hits_records_sort(map<string, HITS_RECORD_T>& record_list, multimap<long, HITS_RECORD_T>& hits_sort)
+{
+	int index = 0;
+
+	map<string, HITS_RECORD_T>::iterator iter;
+	for(iter=record_list.begin(); iter!=record_list.end();iter++)
+	{
+		string key = iter->first;
+		HITS_RECORD_T& record = iter->second;
+		
+		hits_sort.insert(pair<long, HITS_RECORD_T>(record.hits_num_mobile+record.hits_num_pc, record));
+			
+		index ++;
+	}	
+	
+	return 0;
+}
+
 
 int hits_records_print(map<string, HITS_RECORD_T>& record_list)
 {
@@ -321,6 +373,50 @@ bool one_period_complete()
 	return false;
 }
 
+int do_memo()
+{
+	int ret = 0;
+	
+	int count = 0;
+	int index = 0;
+
+	// lock
+	{
+		fprintf(stdout, "%s\n", __FUNCTION__);
+		
+		g_hits_memo.clear();
+		index = g_hits_index - 1;		
+		while(count < MAX_HITS_NUM)
+		{
+			HITS_STATISTICS_T* statp = &(g_hits_stats[index]);
+			fprintf(stdout, "%s: statp->start_time=%ld\n", __FUNCTION__, statp->start_time);			
+			if(statp->start_time > 0)
+			{			
+				hits_records_merge(g_hits_memo, statp);	
+				//hits_records_print(g_hits_records);
+			}
+			
+			index --;
+			if(index < 0)
+			{
+				index = MAX_HITS_NUM - 1;
+			}
+			count ++;
+		}
+
+		fprintf(stdout, "%s: g_hits_memo.size()=%ld\n", __FUNCTION__, g_hits_memo.size());		
+		
+		g_hits_sort.clear();
+		hits_records_sort(g_hits_memo, g_hits_sort);
+		//hits_sorts_print(g_hits_sort);
+		
+	}
+	// unlock
+	
+	return ret;
+}
+
+
 int do_save()
 {
 	int ret = 0;
@@ -330,10 +426,12 @@ int do_save()
 	if(one_period_complete())
 	{
 		int count = 0;
-		int index = g_hits_index - 1;
+		int index = 0;
 
 		fprintf(stdout, "%s: one_period_complete\n", __FUNCTION__);
 		
+		g_hits_records.clear();
+		index = g_hits_index - 1;		
 		while(count < MAX_HITS_NUM)
 		{
 			HITS_STATISTICS_T* statp = &(g_hits_stats[index]);
@@ -353,7 +451,7 @@ int do_save()
 			count ++;
 		}
 
-		fprintf(stdout, "%s: g_hits_records %ld, g_start_time=%ld\n", __FUNCTION__, g_hits_records.size(), g_start_time);
+		fprintf(stdout, "%s: g_hits_records.size()=%ld, g_start_time=%ld\n", __FUNCTION__, g_hits_records.size(), g_start_time);
 		
 		ret = db_save(g_hits_records, g_start_time);
 	}
@@ -393,6 +491,12 @@ int do_job(time_t job_time)
 		return ret;
 	}
 
+	ret = do_memo();
+	if(ret != 0)
+	{
+		return ret;
+	}
+	
 	ret = do_save();
 	if(ret != 0)
 	{
