@@ -12,6 +12,8 @@
 
 #include "HTTPSession.h"
 
+#include "main.h"
+
 #define BASE_SERVER_NAME 	"TeslaStreamingServer"
 #define BASE_SERVER_VERSION "1.0"
 #define ROOT_PATH			"/home/html"
@@ -507,38 +509,20 @@ Bool16 HTTPSession::ResponseHello()
 	return true;
 }
 
-
 Bool16 HTTPSession::ResponseCmd(char* absolute_uri)
-{
-	char	buffer[1024];
-	StringFormatter content(buffer, sizeof(buffer));
-	
-	content.Put("<HTML>\n");
-	content.Put("<BODY>\n");
-
-	content.PutFmtStr("cmd=%s\n", absolute_uri);	
-	//todo:
-		
-	content.Put("</BODY>\n");
-	content.Put("</HTML>\n");
-        
-    fResponse.Set(fStrRemained.Ptr+fStrRemained.Len, kResponseBufferSizeInBytes-fStrRemained.Len);
-    fResponse.Put("HTTP/1.0 200 OK\r\n");
-    fResponse.PutFmtStr("Server: %s/%s\r\n", BASE_SERVER_NAME, BASE_SERVER_VERSION);
-    fResponse.PutFmtStr("Content-Length: %d\r\n", content.GetBytesWritten());
-    fResponse.PutFmtStr("Content-Type: %s;charset=%s\r\n", CONTENT_TYPE_TEXT_HTML, CHARSET_UTF8);
-    fResponse.Put("\r\n"); 
-    fResponse.Put(content.GetBufPtr(), content.GetBytesWritten());
-
-    fStrResponse.Set(fResponse.GetBufPtr(), fResponse.GetBytesWritten());
-    //append to fStrRemained
-    fStrRemained.Len += fStrResponse.Len;  
-    //clear previous response.
-    fStrResponse.Set(fResponseBuffer, 0);
+{	
+	int ret = 0;
+	int num = 100;
+	ret = hits_get_hottest(num);
+	if(ret == 0)
+	{
+		char temp_file[PATH_MAX];
+		extern CONFIG_T			g_config;
+		snprintf(temp_file, PATH_MAX-1, "%s/hottest_top%d.json", g_config.root_path, num);
+		return ResponseFileContent(temp_file);
+    }
     
-    //SendData();
-    
-	return true;
+	return false;
 }
 
 Bool16 HTTPSession::ResponseFileNotFound(char* absolute_uri)

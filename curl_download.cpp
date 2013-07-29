@@ -53,7 +53,7 @@ int curl_download(char* srcfile, char* dstfile)
     	//超时设置（单位：秒），如果在指定时间内没数据可接收则超时
     	curl_easy_setopt( curl, CURLOPT_TIMEOUT, 120);
         //连接超时，不过只适用于Unix系统，Windows系统应该就是使用CURLOPT_TIMEOUT
-    	curl_easy_setopt( curl, CURLOPT_CONNECTTIMEOUT, 30);
+    	curl_easy_setopt( curl, CURLOPT_CONNECTTIMEOUT, 60);
     	/*
      		* You better replace the URL with one that works!
      		*/ 

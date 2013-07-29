@@ -20,6 +20,7 @@ using namespace std;
 #include "jsonlint.h"
 #include "db.h"
 #include "http_server.h"
+#include "main.h"
 
 #define MY_VERSION		"0.1"
 #define SLEEP_INTERVAL	(10)
@@ -48,14 +49,6 @@ using namespace std;
 #define DEFAULT_DB_PORT				3306
 
 #define MAX_HITS_NUM				(DEFAULT_DB_SAVE_INTERVAL/DEFAULT_OXEYE_GET_INTERVAL)
-
-typedef struct config_t
-{	
-	char* root_path;
-	char* oxeye_url_prefix;
-	int	  oxeye_get_interval; // seconds.
-	int	  db_save_interval;   // seconds.
-} CONFIG_T;
 
 DEQUE_NODE* 		g_job_list = NULL;
 pthread_mutex_t 	g_job_mutex;
@@ -209,6 +202,43 @@ int hits_sorts_print(multimap<long, HITS_RECORD_T>& hits_sort)
 	return 0;
 }
 
+int hits_get_hottest(int num)
+{
+	int index = 0;
+
+	char temp_file[PATH_MAX];
+	snprintf(temp_file, PATH_MAX-1, "%s/hottest_top%d.json", g_config.root_path, num);
+
+	FILE* filep = fopen(temp_file, "wb");
+    if(filep == NULL)
+    {
+    	return -1;
+    }
+	
+	multimap<long, HITS_RECORD_T>::reverse_iterator iter;
+	for(iter=g_hits_sort.rbegin(); iter!=g_hits_sort.rend();iter++)
+	{
+		long key = iter->first;
+		HITS_RECORD_T& record = iter->second;
+
+		fprintf(filep, "%s: index=%d, key=%ld, hash_id=%s, area_id=%d, hits_num_pc=%ld, hits_num_mobile=%ld\n", 
+			__FUNCTION__, index, key, record.hash_id, record.area_id, record.hits_num_pc, record.hits_num_mobile);
+		
+		index ++;
+		if(index >= num)
+		{
+			break;
+		}
+	}
+
+	if(filep != NULL)
+	{
+		fclose(filep);
+		filep = NULL;
+	}
+	
+	return 0;
+}
 
 int hits_records_sort(map<string, HITS_RECORD_T>& record_list, multimap<long, HITS_RECORD_T>& hits_sort)
 {
