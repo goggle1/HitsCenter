@@ -460,6 +460,33 @@ static time_t	time_from_string(char* str)
 	return ret;
 }
 
+// return 1: means true.
+// return 0: means false.
+static int hashid_stat_valid(HASHID_STATISTICS_T* hashidp)
+{
+	if(hashidp == NULL)
+	{
+		return 0;
+	}
+
+#define CID_LEN 	32
+#define HASHID_LEN 	40
+	if(strlen(hashidp->hash_id) != CID_LEN && strlen(hashidp->hash_id) != HASHID_LEN)
+	{
+		fprintf(stdout, "%s: hashid=%s[!], hits_num=%ld\n", __FUNCTION__, hashidp->hash_id, hashidp->hits_num);
+		return 0;
+	}
+
+	if(hashidp->hits_num <= 0)
+	{
+		fprintf(stdout, "%s: hashid=%s, hits_num=%ld[!]\n", __FUNCTION__, hashidp->hash_id, hashidp->hits_num);
+		return 0;
+	}
+
+
+	return 1;	
+}
+
 static int read_tree_time(HITS_STATISTICS_T* statp, json_val_t *element)
 {
 	int ret = -1;
@@ -500,12 +527,12 @@ static int read_tree_playnum(HASHID_STATISTICS_T* hashidp, json_val_t *element)
 	switch (element->type) 
 	{
 	case JSON_STRING:		
-		hashidp->play_num = atol(element->u.data);
+		hashidp->hits_num = atol(element->u.data);
 		//fprintf(stdout, "%s: json_playnum=%s\n", __FUNCTION__, json_playnum);
 		ret = 0;
 		break;
 	case JSON_INT:		
-		hashidp->play_num = atol(element->u.data);
+		hashidp->hits_num = atol(element->u.data);
 		//fprintf(stdout, "%s: json_playnum=%s\n", __FUNCTION__, json_playnum);
 		ret = 0;
 		break;
@@ -532,8 +559,15 @@ static int read_tree_hashid(HASHID_STATISTICS_T* hashidp, json_val_t *element)
 	case JSON_OBJECT_BEGIN:			
 		for (i = 0; i < element->length; i++) 
 		{
-			//fprintf(stdout, "%s: key[%d/%d]=%s\n", __FUNCTION__, i, element->length, element->u.object[i]->key);			
-			strcpy(hashidp->hash_id, element->u.object[i]->key);
+			//fprintf(stdout, "%s: key[%d/%d]=%s\n", __FUNCTION__, i, element->length, element->u.object[i]->key);		
+			/*
+			if(strlen(element->u.object[i]->key) < 32)
+			{
+				fprintf(stdout, "%s: key[%d/%d]=%s\n", __FUNCTION__, i, element->length, element->u.object[i]->key);	
+			}
+			*/
+			strncpy(hashidp->hash_id, element->u.object[i]->key, MAX_HASH_ID_LEN-1);
+			hashidp->hash_id[MAX_HASH_ID_LEN-1] = '\0';
 			ret = read_tree_playnum(hashidp, element->u.object[i]->val);
 		}
 		break;	
@@ -560,25 +594,31 @@ static int read_tree_hashids(AREA_STATISTICS_T* areap, json_val_t *element)
 	case JSON_ARRAY_BEGIN:		
 		for (i = 0; i < element->length; i++) 
 		{
-			//fprintf(stdout, "%s: array[%d/%d]\n", __FUNCTION__, i, element->length);
-			DEQUE_NODE* nodep = (DEQUE_NODE*)malloc(sizeof(DEQUE_NODE));
-			if(nodep == NULL)
-			{
-				break;
-			}
-			memset(nodep, 0, sizeof(DEQUE_NODE));
+			//fprintf(stdout, "%s: array[%d/%d]\n", __FUNCTION__, i, element->length);			
 			
 			HASHID_STATISTICS_T* hashidp = (HASHID_STATISTICS_T*)malloc(sizeof(HASHID_STATISTICS_T));
 			if(hashidp == NULL)
-			{
-				free(nodep);
+			{			
 				break;
 			}
 			memset(hashidp, 0, sizeof(HASHID_STATISTICS_T));
+						
+			ret = read_tree_hashid(hashidp, element->u.array[i]);
+			if(!hashid_stat_valid(hashidp))
+			{
+				free(hashidp);
+				continue;
+			}
+
+			DEQUE_NODE* nodep = (DEQUE_NODE*)malloc(sizeof(DEQUE_NODE));
+			if(nodep == NULL)
+			{
+				free(hashidp);
+				break;
+			}
+			memset(nodep, 0, sizeof(DEQUE_NODE));
 			nodep->datap = hashidp;
 			
-			ret = read_tree_hashid(hashidp, element->u.array[i]);
-
 			areap->hashid_list = deque_append(areap->hashid_list, nodep);
 			
 		}		

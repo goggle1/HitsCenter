@@ -14,7 +14,7 @@ extern "C"
 typedef struct hashid_statistics_t
 {
 	char	hash_id[MAX_HASH_ID_LEN];
-	long	play_num;	
+	long	hits_num;	
 } HASHID_STATISTICS_T;
 
 typedef struct area_statistics_t

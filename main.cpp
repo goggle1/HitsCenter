@@ -29,8 +29,10 @@ using namespace std;
 // just for debug.
 #if 0
 #define DEFAULT_OXEYE_GET_INTERVAL	(1*60)
-#define DEFAULT_DB_SAVE_INTERVAL	(6*60)
-#define DEFAULT_OXEYE_URL_PREFIX 	"http://test.funshion.com/_online/cacti_django/api/get_data/playnum"
+#define DEFAULT_DB_SAVE_INTERVAL	(10*60)
+//#define DEFAULT_OXEYE_URL_PREFIX 	"http://test.funshion.com/_online/cacti_django/api/get_data/playnum"
+#define DEFAULT_OXEYE_URL_PREFIX 	"http://traceall.funshion.com/_online/cacti_django/api/get_data/playnum"
+
 #else
 #define DEFAULT_OXEYE_GET_INTERVAL	(10*60)
 #define DEFAULT_DB_SAVE_INTERVAL	(1*60*60)
@@ -83,7 +85,7 @@ DB_PARAM			g_db_param =
 // hash table.
 // DEQUE_NODE*		g_hashid_list = NULL;
 // red_black_tree is better.
-map<string, HITS_RECORD_T> g_play_records;
+map<string, HITS_RECORD_T> g_hits_records;
 time_t					   g_start_time;
 
 int job_in_queue(time_t job_time)
@@ -202,8 +204,6 @@ int hits_records_print(map<string, HITS_RECORD_T>& record_list)
 
 int hits_records_merge(map<string, HITS_RECORD_T>& record_list, HITS_STATISTICS_T* statp)
 {
-	g_start_time = statp->start_time;
-
 	char key[MAX_KEY_LEN];
 	HITS_RECORD_T record;
 	map<string, HITS_RECORD_T>::iterator iter;
@@ -228,14 +228,14 @@ int hits_records_merge(map<string, HITS_RECORD_T>& record_list, HITS_STATISTICS_
 			{
 				strcpy(record.hash_id, hashidp->hash_id);
 				record.area_id = areap->area_id;
-				record.hits_num_pc = hashidp->play_num;
+				record.hits_num_pc = hashidp->hits_num;
 				record.hits_num_mobile = 0;
 				record_list.insert(pair<string, HITS_RECORD_T>(key, record));
 			}
 			else
 			{
 				HITS_RECORD_T& record_ref = iter->second;
-				record_ref.hits_num_pc += hashidp->play_num;				
+				record_ref.hits_num_pc += hashidp->hits_num;				
 			}
 
 			if(hashid_nodep->nextp == hashid_list)
@@ -270,13 +270,13 @@ int hits_records_merge(map<string, HITS_RECORD_T>& record_list, HITS_STATISTICS_
 				strcpy(record.hash_id, hashidp->hash_id);
 				record.area_id = areap->area_id;
 				record.hits_num_pc = 0;
-				record.hits_num_mobile = hashidp->play_num;
+				record.hits_num_mobile = hashidp->hits_num;
 				record_list.insert(pair<string, HITS_RECORD_T>(key, record));
 			}
 			else
 			{
 				HITS_RECORD_T& record_ref = iter->second;
-				record_ref.hits_num_mobile += hashidp->play_num;				
+				record_ref.hits_num_mobile += hashidp->hits_num;				
 			}
 
 			if(hashid_nodep->nextp == hashid_list)
@@ -296,16 +296,24 @@ int hits_records_merge(map<string, HITS_RECORD_T>& record_list, HITS_STATISTICS_
 	return 0;
 }
 
-bool one_hour_complete()
+bool one_period_complete()
 {
-	// just for debug.
-#if 0
-	return true;
-#endif
+	int pre_index = g_hits_index  - 1;
+	if(pre_index < 0)
+	{
+		pre_index = MAX_HITS_NUM - 1;
+	}
+	HITS_STATISTICS_T* prep = &(g_hits_stats[pre_index]);
+	if((prep->start_time + g_config.oxeye_get_interval)%DEFAULT_DB_SAVE_INTERVAL == 0)
+	{
+		return true;
+	}
+	return false;
+
 
 	// the oldest statistics, maybe
 	HITS_STATISTICS_T* statp = &(g_hits_stats[g_hits_index]);
-	if(statp->start_time > 0 && (statp->start_time%3600==0))
+	if(statp->start_time > 0 && (statp->start_time%DEFAULT_DB_SAVE_INTERVAL==0))
 	{
 		return true;
 	}
@@ -319,29 +327,35 @@ int do_save()
 	
 	// 10 minutes ,  1 statistics.
 	// 1   hour,	save to database.	
-	if(one_hour_complete())
+	if(one_period_complete())
 	{
 		int count = 0;
-		int index = g_hits_index;
+		int index = g_hits_index - 1;
+
+		fprintf(stdout, "%s: one_period_complete\n", __FUNCTION__);
 		
 		while(count < MAX_HITS_NUM)
 		{
 			HITS_STATISTICS_T* statp = &(g_hits_stats[index]);
+			fprintf(stdout, "%s: statp->start_time=%ld\n", __FUNCTION__, statp->start_time);			
 			if(statp->start_time > 0)
 			{
-				hits_records_merge(g_play_records, statp);	
-				hits_records_print(g_play_records);
+				g_start_time = statp->start_time;
+				hits_records_merge(g_hits_records, statp);	
+				//hits_records_print(g_hits_records);
 			}
 			
-			index ++;
-			if(index >= MAX_HITS_NUM)
+			index --;
+			if(index < 0)
 			{
-				index = 0;
+				index = MAX_HITS_NUM - 1;
 			}
 			count ++;
 		}
+
+		fprintf(stdout, "%s: g_hits_records %ld, g_start_time=%ld\n", __FUNCTION__, g_hits_records.size(), g_start_time);
 		
-		ret = db_save(g_play_records, g_start_time);
+		ret = db_save(g_hits_records, g_start_time);
 	}
 
 	return ret;
@@ -597,7 +611,20 @@ int main(int argc, char* argv[])
 		{
 			// produce 1 job.
 			time_t job_time = now/g_config.oxeye_get_interval*g_config.oxeye_get_interval;
-			job_in_queue(job_time);			
+			job_time = job_time - g_config.oxeye_get_interval;
+			if(last_time == 0)
+			{
+				int index = 0;
+				for(index=MAX_HITS_NUM-1; index>=0; index--)
+				{
+					time_t pre_job_time = job_time - index*g_config.oxeye_get_interval;
+					job_in_queue(pre_job_time);			
+				}
+			}
+			else
+			{
+				job_in_queue(job_time);	
+			}
 			
 			last_time = now;
 		}

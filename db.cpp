@@ -117,7 +117,7 @@ int db_save(map<string, HITS_RECORD_T>& record_list, time_t start_time)
 	char time_str[MAX_TIME_LEN];
 	struct tm result = {};
 	localtime_r(&start_time, &result);
-	snprintf(time_str, MAX_TIME_LEN-1, "%04d-%02d-%02d %02d:%02d%02d", 
+	snprintf(time_str, MAX_TIME_LEN-1, "%04d-%02d-%02d %02d:%02d:%02d", 
 		result.tm_year+1900,
 		result.tm_mon +1,
 		result.tm_mday,
