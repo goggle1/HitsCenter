@@ -2,6 +2,9 @@
 #ifndef __HTTPSESSION_H__
 #define __HTTPSESSION_H__
 
+#include <map>
+#include <string>
+
 #include "BaseServer/OSHeaders.h"
 #include "BaseServer/StringFormatter.h"
 #include "BaseServer/Task.h"
@@ -9,6 +12,7 @@
 
 #include "HTTPRequest.h"
 
+using namespace std;
 
 class HTTPSession : public Task
 {
@@ -33,6 +37,7 @@ protected:
         	Bool16 			ResponseFileNotFound(char* absolute_uri);
         	Bool16 			ResponseError(QTSS_RTSPStatusCode StatusCode);
 	        void            MoveOnRequest();
+	        Bool16			ParseParams(char* params);
 
 			TCPSocket	fSocket;
 		
@@ -67,7 +72,13 @@ protected:
 			char		fBuffer[kReadBufferSize];
 
 			// from RTSP, 
-	        QTSS_RTSPStatusCode fStatusCode;  	        
+	        QTSS_RTSPStatusCode fStatusCode;  
+
+			// ?cmd=get_cmd&N=10
+	        // map params.
+	        // key1=value1&key2=value2
+	        // red_black_tree.
+	        map<string, string> fParams;
 
 
 };

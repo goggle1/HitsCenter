@@ -203,8 +203,9 @@ int hits_sorts_print(multimap<long, HITS_RECORD_T>& hits_sort)
 }
 
 int hits_get_hottest(int num)
-{
+{	
 	int index = 0;
+	int return_num = num;
 
 	char temp_file[PATH_MAX];
 	snprintf(temp_file, PATH_MAX-1, "%s/hottest_top%d.json", g_config.root_path, num);
@@ -214,22 +215,48 @@ int hits_get_hottest(int num)
     {
     	return -1;
     }
+
+	int total_num = g_hits_sort.size();
+	if(total_num < num)
+	{
+		return_num = total_num;
+	}
+
+	fprintf(filep, "{ \n");
+
+	fprintf(filep, "\"result\":\"%s\", \n", "ok");
+	fprintf(filep, "\"want\":%d, \n", num);
+	fprintf(filep, "\"return\":%d, \n", return_num);
 	
+	fprintf(filep, "\"data\":[ \n");		
 	multimap<long, HITS_RECORD_T>::reverse_iterator iter;
 	for(iter=g_hits_sort.rbegin(); iter!=g_hits_sort.rend();iter++)
 	{
 		long key = iter->first;
 		HITS_RECORD_T& record = iter->second;
 
-		fprintf(filep, "%s: index=%d, key=%ld, hash_id=%s, area_id=%d, hits_num_pc=%ld, hits_num_mobile=%ld\n", 
-			__FUNCTION__, index, key, record.hash_id, record.area_id, record.hits_num_pc, record.hits_num_mobile);
-		
+		//fprintf(filep, "%s: index=%d, key=%ld, hash_id=%s, area_id=%d, hits_num_pc=%ld, hits_num_mobile=%ld\n", 
+		//	__FUNCTION__, index, key, record.hash_id, record.area_id, record.hits_num_pc, record.hits_num_mobile);
+		fprintf(filep, "{ \n");
+		fprintf(filep, "\"index\":%d, \"total_hits\": %ld, \"hash_id\":\"%s\", \"area_id\":%d, \"hits_num_pc\":%ld, \"hits_num_mobile\":%ld \n", 
+			index, key, record.hash_id, record.area_id, record.hits_num_pc, record.hits_num_mobile);
+		fprintf(filep, "}");
+				
 		index ++;
-		if(index >= num)
+		if(index >= return_num)
 		{
+			fprintf(filep, "\n");
 			break;
 		}
+		else
+		{
+			fprintf(filep, ",\n");
+		}
 	}
+	
+	fprintf(filep, "] \n");
+	
+	fprintf(filep, "} \n");
 
 	if(filep != NULL)
 	{

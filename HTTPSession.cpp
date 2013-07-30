@@ -73,6 +73,22 @@ char* content_type_by_suffix(char* suffix)
 	}
 }
 
+int parse_key_value(string& param, string& key, string& value)
+{
+	int find = param.find('=');
+	if(find < 0)
+	{
+		return -1;
+	}
+
+	const char* temp = param.c_str();
+	key.assign(temp, find);
+	value.assign(temp+find+1);	
+	
+	return 0;
+}
+
+
 HTTPSession::HTTPSession():
     fSocket(NULL, Socket::kNonBlockingSocketType),
     fStrReceived((char*)fRequestBuffer, 0),
@@ -509,18 +525,85 @@ Bool16 HTTPSession::ResponseHello()
 	return true;
 }
 
-Bool16 HTTPSession::ResponseCmd(char* absolute_uri)
-{	
-	int ret = 0;
-	int num = 100;
-	ret = hits_get_hottest(num);
-	if(ret == 0)
+Bool16 HTTPSession::ParseParams(char* params)
+{		
+	char* begin = params;
+	char* temp = NULL;
+	
+	while(1)
 	{
-		char temp_file[PATH_MAX];
-		extern CONFIG_T			g_config;
-		snprintf(temp_file, PATH_MAX-1, "%s/hottest_top%d.json", g_config.root_path, num);
-		return ResponseFileContent(temp_file);
-    }
+		temp = strstr(begin, "&");
+		if(temp != NULL)
+		{
+			string one_param;
+			one_param.assign(begin, temp-begin);
+			
+			string key;
+			string value;
+			parse_key_value(one_param, key, value);
+			if(key.size() > 0)
+			{
+				fParams.insert(pair<string, string>(key, value));
+			}
+
+			temp++;
+			begin = temp;
+		}
+		else
+		{
+			string one_param;
+			one_param.assign(begin);
+			
+			string key;
+			string value;
+			parse_key_value(one_param, key, value);
+			if(key.size() > 0)
+			{
+				fParams.insert(pair<string, string>(key, value));
+			}
+			
+			break;
+		}
+	}
+	
+	return true;
+}
+
+Bool16 HTTPSession::ResponseCmd(char* absolute_uri)
+{		
+	char* params = absolute_uri + 2;
+	Bool16 parse = false;	
+	parse = ParseParams(params);
+	if(!parse)
+	{
+		return false;
+	}
+
+	string cmd = fParams["cmd"];
+	if(strcmp(cmd.c_str(), "get_hottest") == 0)
+	{
+		string str_num = fParams["N"];
+		int num = atoi(str_num.c_str());	
+		int get = 0;
+		get = hits_get_hottest(num);
+		if(get == 0)
+		{
+			char temp_file[PATH_MAX];
+			extern CONFIG_T			g_config;
+			snprintf(temp_file, PATH_MAX-1, "%s/hottest_top%d.json", g_config.root_path, num);
+			return ResponseFileContent(temp_file);
+	    }
+	}
+	else if(strcmp(cmd.c_str(), "get_coldest") == 0)
+	{
+		return false;
+	}
+	else
+	{
+		return false;
+	}
+	
+	
     
 	return false;
 }
